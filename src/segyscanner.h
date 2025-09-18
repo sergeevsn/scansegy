@@ -48,7 +48,7 @@ private:
         int32_t iline, xline;
     };
     
-    std::vector<TraceData> extractTraceData(const std::string& filepath, int num_traces);
+    std::vector<TraceData> extractTraceData(const std::string& filepath);
     
     // Table generation
     void generateInfoTable(const std::string& output_dir, const std::vector<std::string>& processed_files);

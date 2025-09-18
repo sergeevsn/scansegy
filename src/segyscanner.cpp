@@ -36,15 +36,25 @@ int SegyScanner::process(const std::string& input_path, const std::set<std::stri
             std::cout << "Processing: " << filepath << std::endl;
             
             try {
-                // Analyze file
-                auto file_info = analyzeFile(filepath);
                 std::string filename = getFilenameWithoutExtension(filepath);
+                
+                // Extract trace data and get file info in one pass
+                auto traces = extractTraceData(filepath);
+                
+                // Create file info from the traces
+                FileInfo file_info;
+                file_info.filename = getFilenameWithoutPath(filepath);
+                file_info.num_traces = static_cast<int>(traces.size());
+                
+                // For now, we'll get other info from a temporary reader
+                // TODO: Optimize this to avoid double file reading
+                SegyReader temp_reader(filepath);
+                file_info.num_samples = static_cast<int>(temp_reader.num_samples());
+                file_info.sample_interval_ms = static_cast<int>(temp_reader.sample_interval() * 1000);
+                file_info.max_time_ms = (file_info.num_samples - 1) * file_info.sample_interval_ms;
                 
                 // Store file info for global table
                 all_file_info_[filename] = file_info;
-                
-                // Extract trace data
-                auto traces = extractTraceData(filepath, file_info.num_traces);
                 
                 // Store traces for ranges calculation
                 all_traces_[filename] = traces;
@@ -148,9 +158,10 @@ SegyScanner::FileInfo SegyScanner::analyzeFile(const std::string& filepath) {
     return info;
 }
 
-std::vector<SegyScanner::TraceData> SegyScanner::extractTraceData(const std::string& filepath, int num_traces) {
+std::vector<SegyScanner::TraceData> SegyScanner::extractTraceData(const std::string& filepath) {
     SegyReader reader(filepath);
     std::vector<TraceData> traces;
+    int num_traces = static_cast<int>(reader.num_traces());
     traces.reserve(num_traces);
     
     std::string filename = getFilenameWithoutPath(filepath);
