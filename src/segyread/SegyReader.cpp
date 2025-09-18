@@ -55,7 +55,7 @@ void SegyReader::readTraces(std::ifstream& file) {
     // Начало чтения с 3600 (после текстового и бинарного заголовков)
     file.seekg(3600);
     
-    // Подсчет трейсов путем чтения файла (оставлен без изменений по вашему запросу)
+    // Подсчет трейсов путем чтения файла
     std::streampos current_pos = 3600;
     file.seekg(0, std::ios::end);
     std::streampos file_size = file.tellg();
@@ -67,11 +67,11 @@ void SegyReader::readTraces(std::ifstream& file) {
         throw std::runtime_error("No traces found in SEGY file");
     }
     
-    // Изменение размера векторов для хранения всех трейсов
-    traces_.resize(num_traces_);
+    // Изменение размера векторов для хранения только заголовков трейсов
     trace_headers_.resize(num_traces_);
+    // Не выделяем память для traces_ - они не нужны для сканирования
     
-    // Чтение всех трейсов
+    // Чтение только заголовков трейсов
     for (size_t i = 0; i < num_traces_; ++i) {
         // Чтение заголовка трейса
         trace_headers_[i].resize(trace_header_size);
@@ -81,24 +81,12 @@ void SegyReader::readTraces(std::ifstream& file) {
             throw std::runtime_error("Failed to read trace header " + std::to_string(i));
         }
         
-        // Чтение данных трейса
-        traces_[i].resize(num_samples_);
-        for (size_t j = 0; j < num_samples_; ++j) {
-            uint32_t ibm;
-            file.read(reinterpret_cast<char*>(&ibm), sizeof(ibm));
-            
-            if (file.gcount() != sizeof(ibm)) {
-                throw std::runtime_error("Failed to read sample " + std::to_string(j) + 
-                                       " from trace " + std::to_string(i));
-            }
-            
-            ibm = swapBytes32(ibm);
-            traces_[i][j] = ibmToIeee(ibm);
-        }
+        // Пропускаем данные трейса - они не нужны для сканирования
+        file.seekg(trace_data_size, std::ios::cur);
         
-        // Show progress every 100 traces or at the end
-        if ((i + 1) % 100 == 0 || i == num_traces_ - 1) {
-            print_progress_bar("Reading file from disk", i + 1, num_traces_);
+        // Show progress every 500 traces or at the end
+        if ((i + 1) % 500 == 0 || i == num_traces_ - 1) {
+            print_progress_bar("Reading headers from disk", i + 1, num_traces_);
         }
     }
 }
@@ -115,7 +103,7 @@ SegyReader::SegyReader(const std::string& file_path)
     // Чтение бинарного заголовка для получения метаданных
     readBinaryHeader(file);
     
-    // Чтение всех трейсов
+    // Чтение только заголовков трейсов (данные трасс не нужны для сканирования)
     readTraces(file);
     
     // Файл закроется автоматически при выходе из области видимости (RAII)
@@ -126,7 +114,9 @@ const std::vector<float>& SegyReader::getTrace(size_t trace_index) const {
         throw std::out_of_range("Trace index " + std::to_string(trace_index) + 
                                " is out of range (max: " + std::to_string(num_traces_ - 1) + ")");
     }
-    return traces_[trace_index];
+    // Данные трасс не загружены для сканирования - возвращаем пустой вектор
+    static const std::vector<float> empty_trace;
+    return empty_trace;
 }
 
 const std::vector<char>& SegyReader::getTraceHeader(size_t trace_index) const {
