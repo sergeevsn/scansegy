@@ -344,20 +344,37 @@ void SegyScanner::generateRangesTable(const std::string& output_dir, const std::
 }
 
 void SegyScanner::generateSourceTable(const std::string& output_dir, const std::string& filename, const std::vector<TraceData>& traces) {
-    std::set<SourceInfo> unique_sources;
+    std::map<std::pair<int32_t, int32_t>, std::tuple<int32_t, int32_t, int32_t>> unique_sources; // (x, y) -> (ffid, source, max_elevation)
     
     for (const auto& trace : traces) {
-        SourceInfo source;
-        source.ffid = trace.ffid;
-        source.source = trace.source;
-        source.sou_x = trace.sou_x;
-        source.sou_y = trace.sou_y;
-        source.sou_elev = trace.sou_elev;
-        unique_sources.insert(source);
+        auto key = std::make_pair(trace.sou_x, trace.sou_y);
+        auto it = unique_sources.find(key);
+        
+        if (it == unique_sources.end()) {
+            // Новый источник
+            unique_sources[key] = std::make_tuple(trace.ffid, trace.source, trace.sou_elev);
+        } else {
+            // Источник уже существует - обновляем высоту до максимальной
+            auto& [ffid, source, elev] = it->second;
+            elev = std::max(elev, trace.sou_elev);
+        }
+    }
+    
+    // Convert to SourceInfo set for map generation
+    std::set<SourceInfo> source_set;
+    for (const auto& source : unique_sources) {
+        SourceInfo info;
+        info.sou_x = source.first.first;
+        info.sou_y = source.first.second;
+        auto& [ffid, source_num, elev] = source.second;
+        info.ffid = ffid;
+        info.source = source_num;
+        info.sou_elev = elev;
+        source_set.insert(info);
     }
     
     // Store for map generation
-    all_sources_[filename] = unique_sources;
+    all_sources_[filename] = source_set;
     
     // Write table
     std::string filepath = output_dir + "/" + filename + "_sou.txt";
@@ -373,9 +390,10 @@ void SegyScanner::generateSourceTable(const std::string& output_dir, const std::
     std::vector<std::vector<std::string>> data;
     int number = 1;
     for (const auto& source : unique_sources) {
-        data.push_back({std::to_string(number), std::to_string(source.ffid), 
-                       std::to_string(source.source), std::to_string(source.sou_x),
-                       std::to_string(source.sou_y), std::to_string(source.sou_elev)});
+        auto& [ffid, source_num, elev] = source.second;
+        data.push_back({std::to_string(number), std::to_string(ffid), 
+                       std::to_string(source_num), std::to_string(source.first.first),
+                       std::to_string(source.first.second), std::to_string(elev)});
         number++;
     }
     
@@ -388,18 +406,33 @@ void SegyScanner::generateSourceTable(const std::string& output_dir, const std::
 }
 
 void SegyScanner::generateReceiverTable(const std::string& output_dir, const std::string& filename, const std::vector<TraceData>& traces) {
-    std::set<ReceiverInfo> unique_receivers;
+    std::map<std::pair<int32_t, int32_t>, int32_t> unique_receivers; // (x, y) -> max_elevation
     
     for (const auto& trace : traces) {
-        ReceiverInfo receiver;
-        receiver.rec_x = trace.rec_x;
-        receiver.rec_y = trace.rec_y;
-        receiver.rec_elev = trace.rec_elev;
-        unique_receivers.insert(receiver);
+        auto key = std::make_pair(trace.rec_x, trace.rec_y);
+        auto it = unique_receivers.find(key);
+        
+        if (it == unique_receivers.end()) {
+            // Новый приемник
+            unique_receivers[key] = trace.rec_elev;
+        } else {
+            // Приемник уже существует - обновляем высоту до максимальной
+            it->second = std::max(it->second, trace.rec_elev);
+        }
+    }
+    
+    // Convert to ReceiverInfo set for map generation
+    std::set<ReceiverInfo> receiver_set;
+    for (const auto& receiver : unique_receivers) {
+        ReceiverInfo info;
+        info.rec_x = receiver.first.first;
+        info.rec_y = receiver.first.second;
+        info.rec_elev = receiver.second;
+        receiver_set.insert(info);
     }
     
     // Store for map generation
-    all_receivers_[filename] = unique_receivers;
+    all_receivers_[filename] = receiver_set;
     
     // Write table
     std::string filepath = output_dir + "/" + filename + "_rec.txt";
@@ -415,8 +448,8 @@ void SegyScanner::generateReceiverTable(const std::string& output_dir, const std
     std::vector<std::vector<std::string>> data;
     int number = 1;
     for (const auto& receiver : unique_receivers) {
-        data.push_back({std::to_string(number), std::to_string(receiver.rec_x),
-                       std::to_string(receiver.rec_y), std::to_string(receiver.rec_elev)});
+        data.push_back({std::to_string(number), std::to_string(receiver.first.first),
+                       std::to_string(receiver.first.second), std::to_string(receiver.second)});
         number++;
     }
     
@@ -429,18 +462,34 @@ void SegyScanner::generateReceiverTable(const std::string& output_dir, const std
 }
 
 void SegyScanner::generateCdpTable(const std::string& output_dir, const std::string& filename, const std::vector<TraceData>& traces) {
-    std::set<CdpInfo> unique_cdps;
+    std::map<std::pair<int32_t, int32_t>, std::tuple<int32_t, int32_t, int32_t>> unique_cdps; // (x, y) -> (cdp_number, iline, xline)
     
     for (const auto& trace : traces) {
-        CdpInfo cdp;
-        cdp.cdp = trace.cdp;
-        cdp.cdp_x = trace.cdp_x;
-        cdp.cdp_y = trace.cdp_y;
-        unique_cdps.insert(cdp);
+        auto key = std::make_pair(trace.cdp_x, trace.cdp_y);
+        auto it = unique_cdps.find(key);
+        
+        if (it == unique_cdps.end()) {
+            // Новый CDP
+            unique_cdps[key] = std::make_tuple(trace.cdp, trace.iline, trace.xline);
+        } else {
+            // CDP уже существует - сохраняем первый встреченный номер CDP
+            // (или можно выбрать минимальный/максимальный по необходимости)
+        }
+    }
+    
+    // Convert to CdpInfo set for map generation
+    std::set<CdpInfo> cdp_set;
+    for (const auto& cdp : unique_cdps) {
+        CdpInfo info;
+        info.cdp_x = cdp.first.first;
+        info.cdp_y = cdp.first.second;
+        auto& [cdp_num, iline, xline] = cdp.second;
+        info.cdp = cdp_num;
+        cdp_set.insert(info);
     }
     
     // Store for map generation
-    all_cdps_[filename] = unique_cdps;
+    all_cdps_[filename] = cdp_set;
     
     // Write table
     std::string filepath = output_dir + "/" + filename + "_cdp.txt";
@@ -450,14 +499,16 @@ void SegyScanner::generateCdpTable(const std::string& output_dir, const std::str
         throw std::runtime_error("Cannot create file: " + filepath);
     }
     
-    std::vector<std::string> headers = {"Number", "CDP", "CDP_X", "CDP_Y"};
+    std::vector<std::string> headers = {"Number", "CDP", "CDP_X", "CDP_Y", "INLINE", "XLINE"};
     
     // Prepare all data rows
     std::vector<std::vector<std::string>> data;
     int number = 1;
     for (const auto& cdp : unique_cdps) {
-        data.push_back({std::to_string(number), std::to_string(cdp.cdp),
-                       std::to_string(cdp.cdp_x), std::to_string(cdp.cdp_y)});
+        auto& [cdp_num, iline, xline] = cdp.second;
+        data.push_back({std::to_string(number), std::to_string(cdp_num),
+                       std::to_string(cdp.first.first), std::to_string(cdp.first.second),
+                       std::to_string(iline), std::to_string(xline)});
         number++;
     }
     

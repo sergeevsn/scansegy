@@ -54,11 +54,10 @@ struct SourceInfo {
     int32_t sou_elev;
     
     bool operator<(const SourceInfo& other) const {
-        if (ffid != other.ffid) return ffid < other.ffid;
-        if (source != other.source) return source < other.source;
+        // Для уникальности источников сравниваем только координаты (X, Y)
+        // FFID, source и elevation могут различаться для одного и того же источника
         if (sou_x != other.sou_x) return sou_x < other.sou_x;
-        if (sou_y != other.sou_y) return sou_y < other.sou_y;
-        return sou_elev < other.sou_elev;
+        return sou_y < other.sou_y;
     }
 };
 
@@ -69,9 +68,10 @@ struct ReceiverInfo {
     int32_t rec_elev;
     
     bool operator<(const ReceiverInfo& other) const {
+        // Для уникальности приемников сравниваем только координаты (X, Y)
+        // Высота (elevation) может различаться для одного и того же приемника
         if (rec_x != other.rec_x) return rec_x < other.rec_x;
-        if (rec_y != other.rec_y) return rec_y < other.rec_y;
-        return rec_elev < other.rec_elev;
+        return rec_y < other.rec_y;
     }
 };
 
@@ -82,7 +82,8 @@ struct CdpInfo {
     int32_t cdp_y;
     
     bool operator<(const CdpInfo& other) const {
-        if (cdp != other.cdp) return cdp < other.cdp;
+        // Для уникальности CDP сравниваем только координаты (X, Y)
+        // Номер CDP может различаться для одной и той же позиции
         if (cdp_x != other.cdp_x) return cdp_x < other.cdp_x;
         return cdp_y < other.cdp_y;
     }
