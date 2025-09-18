@@ -174,8 +174,8 @@ int32_t SegyReader::get_header_value_i32(size_t trace_index, const std::string& 
     // Mapping of header field names to byte offsets (1-based)
     static const std::unordered_map<std::string, int> field_offsets = {
         {"FieldRecord", 1}, {"TraceNumber", 5}, {"CDP", 21}, {"EnergySourcePoint", 25},
-        {"SourceX", 73}, {"SourceY", 77}, {"SourceElevation", 81}, {"ReceiverX", 85},
-        {"ReceiverY", 89}, {"ReceiverElevation", 93}, {"CDP_X", 181}, {"CDP_Y", 185},
+        {"SourceX", 73}, {"SourceY", 77}, {"SourceElevation", 45}, {"ReceiverX", 81},
+        {"ReceiverY", 85}, {"ReceiverElevation", 41}, {"CDP_X", 181}, {"CDP_Y", 185},
         {"ILINE_3D", 189}, {"CROSSLINE_3D", 193}
     };
     
