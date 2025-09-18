@@ -175,11 +175,6 @@ std::vector<SegyScanner::TraceData> SegyScanner::extractTraceData(const std::str
         trace.xline = reader.get_header_value_i32(i, "CROSSLINE_3D");
         
         traces.push_back(trace);
-        
-        // Show progress every 100 traces or at the end
-        if ((i + 1) % 100 == 0 || i == num_traces - 1) {
-            print_progress_bar("Reading traces from " + filename, i + 1, num_traces);
-        }
     }
     
     return traces;

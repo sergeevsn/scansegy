@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <unordered_map>
+#include <iomanip>
 
 // Константы для IBM to IEEE conversion (from sample_segy_io.cpp)
 #define SEGYIO_IEMAXIB 0x7fffffff 
@@ -93,6 +94,11 @@ void SegyReader::readTraces(std::ifstream& file) {
             
             ibm = swapBytes32(ibm);
             traces_[i][j] = ibmToIeee(ibm);
+        }
+        
+        // Show progress every 100 traces or at the end
+        if ((i + 1) % 100 == 0 || i == num_traces_ - 1) {
+            print_progress_bar("Reading file from disk", i + 1, num_traces_);
         }
     }
 }
@@ -219,4 +225,29 @@ int16_t SegyReader::get_header_value_i16(size_t trace_index, const std::string& 
     }
     
     return 0;
+}
+
+void SegyReader::print_progress_bar(const std::string& label, int current, int total, int width) {
+    if (total == 0) return;
+
+    // Используем double для большей точности и добавляем 0.5 для правильного математического округления
+    double progress = static_cast<double>(current) / total;
+    int bar_width = static_cast<int>(progress * width + 0.5);
+
+    std::cout << "\r" // Возврат каретки
+              << std::left << std::setw(30) << label // Устанавливаем фиксированную ширину метки и выравниваем по левому краю
+              << ": [";
+
+    for (int i = 0; i < width; ++i) {
+        std::cout << (i < bar_width ? '#' : '.');
+    }
+    std::cout << "] " 
+              << std::right << std::setw(3) << static_cast<int>(progress * 100.0) << "%" // Фиксированная ширина для процентов
+              << " (" << current << "/" << total << ")"
+              << std::flush; // Принудительный сброс буфера в консоль
+
+    // --- ИСПРАВЛЕНИЕ 3: Перевод строки только ПОСЛЕ финального вывода ---
+    if (current >= total) {
+        std::cout << std::endl;
+    }
 }

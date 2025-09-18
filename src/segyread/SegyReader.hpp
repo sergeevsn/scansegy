@@ -32,6 +32,10 @@ public:
     
     int32_t get_header_value_i32(size_t trace_index, const std::string& key) const;
     int16_t get_header_value_i16(size_t trace_index, const std::string& key) const;
+    
+    // --- УТИЛИТЫ ---
+    
+    void print_progress_bar(const std::string& label, int current, int total, int width = 50);
 
 private:
     std::string file_path_;
