@@ -69,6 +69,9 @@ private:
     std::string formatCell(const std::string& value, int width);
     void calculateRanges(const std::string& filename, const std::vector<TraceData>& traces);
     
+    // Progress bar utility
+    void print_progress_bar(const std::string& label, int current, int total, int width = 50);
+    
     // Data storage for map generation and ranges
     std::map<std::string, std::set<SourceInfo>> all_sources_;
     std::map<std::string, std::set<ReceiverInfo>> all_receivers_;

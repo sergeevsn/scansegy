@@ -153,6 +153,8 @@ std::vector<SegyScanner::TraceData> SegyScanner::extractTraceData(const std::str
     std::vector<TraceData> traces;
     traces.reserve(num_traces);
     
+    std::string filename = getFilenameWithoutPath(filepath);
+    
     for (int i = 0; i < num_traces; ++i) {
         TraceData trace;
         
@@ -173,6 +175,11 @@ std::vector<SegyScanner::TraceData> SegyScanner::extractTraceData(const std::str
         trace.xline = reader.get_header_value_i32(i, "CROSSLINE_3D");
         
         traces.push_back(trace);
+        
+        // Show progress every 100 traces or at the end
+        if ((i + 1) % 100 == 0 || i == num_traces - 1) {
+            print_progress_bar("Reading traces from " + filename, i + 1, num_traces);
+        }
     }
     
     return traces;
@@ -648,4 +655,29 @@ std::string SegyScanner::formatCell(const std::string& value, int width) {
         result = std::string(width - result.length(), ' ') + result;
     }
     return result;
+}
+
+void SegyScanner::print_progress_bar(const std::string& label, int current, int total, int width) {
+    if (total == 0) return;
+
+    // Используем double для большей точности и добавляем 0.5 для правильного математического округления
+    double progress = static_cast<double>(current) / total;
+    int bar_width = static_cast<int>(progress * width + 0.5);
+
+    std::cout << "\r" // Возврат каретки
+              << std::left << std::setw(30) << label // Устанавливаем фиксированную ширину метки и выравниваем по левому краю
+              << ": [";
+
+    for (int i = 0; i < width; ++i) {
+        std::cout << (i < bar_width ? '#' : '.');
+    }
+    std::cout << "] " 
+              << std::right << std::setw(3) << static_cast<int>(progress * 100.0) << "%" // Фиксированная ширина для процентов
+              << " (" << current << "/" << total << ")"
+              << std::flush; // Принудительный сброс буфера в консоль
+
+    // --- ИСПРАВЛЕНИЕ 3: Перевод строки только ПОСЛЕ финального вывода ---
+    if (current >= total) {
+        std::cout << std::endl;
+    }
 }
