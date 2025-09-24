@@ -713,6 +713,11 @@ std::string SegyScanner::formatCell(const std::string& value, int width) {
 void SegyScanner::print_progress_bar(const std::string& label, int current, int total, int width) {
     if (total == 0) return;
 
+    // Скрываем курсор в начале отрисовки прогресс-бара
+    if (current == 1) {
+        std::cout << "\x1b[?25l";
+    }
+
     // Используем double для большей точности и добавляем 0.5 для правильного математического округления
     double progress = static_cast<double>(current) / total;
     int bar_width = static_cast<int>(progress * width + 0.5);
@@ -732,5 +737,7 @@ void SegyScanner::print_progress_bar(const std::string& label, int current, int 
     // --- ИСПРАВЛЕНИЕ 3: Перевод строки только ПОСЛЕ финального вывода ---
     if (current >= total) {
         std::cout << std::endl;
+        // Показываем курсор обратно в конце
+        std::cout << "\x1b[?25h";
     }
 }

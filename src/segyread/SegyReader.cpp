@@ -71,6 +71,9 @@ void SegyReader::readTraces(std::ifstream& file) {
     trace_headers_.resize(num_traces_);
     // Не выделяем память для traces_ - они не нужны для сканирования
     
+    // Скрываем курсор перед началом чтения трейсов
+    std::cout << "\x1b[?25l";
+    
     // Чтение только заголовков трейсов
     for (size_t i = 0; i < num_traces_; ++i) {
         // Чтение заголовка трейса
@@ -89,6 +92,9 @@ void SegyReader::readTraces(std::ifstream& file) {
             print_progress_bar("Reading headers from disk", i + 1, num_traces_);
         }
     }
+    
+    // Показываем курсор обратно после завершения чтения
+    std::cout << "\x1b[?25h";
 }
 
 
